@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+.netlify/
+.firebase/
+.firebaserc/
+
+# System
+Thumbs.db
+.DS_Store
+
+# User data
+ESKI_DOSYALAR/
+*.zip
+*.log

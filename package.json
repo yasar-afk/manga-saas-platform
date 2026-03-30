@@ -1,0 +1,15 @@
+{
+  "name": "manga-saas-platform",
+  "version": "1.0.0",
+  "description": "Manga Translation SaaS Platform",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "deploy": "npx netlify-cli deploy --prod --dir=."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "netlify-cli": "latest",
+    "serve": "latest"
+  }
+}

