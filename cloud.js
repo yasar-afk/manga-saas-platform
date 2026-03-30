@@ -122,7 +122,14 @@ async function cloudGetSystemSettings() {
     }
     try {
         const snap = await window.db.ref('settings').once('value');
-        return snap.val() || {};
+        const settings = snap.val() || {};
+        
+        // 🔒 HARDCODED FALLBACK: Bulutta veri yoksa veya hata varsa bu anahtarı kullan
+        if (!settings.gemini_keys) {
+            settings.gemini_keys = "AIzaSyCURFhB8fEvKzVpN7J6p5SMyj7tAfRXvNw";
+        }
+        
+        return settings;
     } catch (e) {
         console.error("Ayar çekme hatası:", e);
         return {};
