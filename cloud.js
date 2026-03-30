@@ -13,15 +13,15 @@ const FIREBASE_CONFIG = {
     appId: "1:74507743831:web:fa432ecd9447560b32a912"
 };
 
-let db = null;
-let useCloud = false;
+window.db = null;
+window.useCloud = false;
 
 // 1. Firebase Başlatma
 try {
     if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey === "AIzaSyB5NM3oVRFtPMRec_Z-bFQaQhUd_xbvqRM") {
         firebase.initializeApp(FIREBASE_CONFIG);
-        db = firebase.database();
-        useCloud = true;
+        window.db = firebase.database();
+        window.useCloud = true;
         console.log("✅ SaaS Cloud Başarıyla Bağlandı.");
     } else {
         console.warn("⚠️ Firebase ayarları yapılmamış. Yerel (localStorage) modda çalışıyor.");
@@ -48,7 +48,7 @@ async function cloudVerifyLicense(key) {
 
     // Bulut Modu (Firebase)
     try {
-        const snapshot = await db.ref(`licenses/${key}`).once('value');
+        const snapshot = await window.db.ref(`licenses/${key}`).once('value');
         return snapshot.val();
     } catch (e) {
         console.error("Lisans sorgulama hatası:", e);
@@ -70,7 +70,7 @@ async function cloudConsumeCredit(key) {
 
     // Bulut Modu
     try {
-        const ref = db.ref(`licenses/${key}`);
+        const ref = window.db.ref(`licenses/${key}`);
         const snapshot = await ref.once('value');
         const data = snapshot.val();
         if (data && data.used < data.limit) {
@@ -103,10 +103,10 @@ async function cloudLogEvent(type, message, evidence = null) {
 
     // Bulut Modu
     try {
-        await db.ref('logs').push(logData);
+        await window.db.ref('logs').push(logData);
         // İstatistikleri güncelle
-        if (type === 'SUCCESS') db.ref('stats/totalPages').transaction(curr => (curr || 0) + 1);
-        if (type === 'NSFW_DETECTED') db.ref('stats/nsfwCount').transaction(curr => (curr || 0) + 1);
+        if (type === 'SUCCESS') window.db.ref('stats/totalPages').transaction(curr => (curr || 0) + 1);
+        if (type === 'NSFW_DETECTED') window.db.ref('stats/nsfwCount').transaction(curr => (curr || 0) + 1);
     } catch (e) {
         console.error("Bulut loglama hatası:", e);
     }
@@ -121,7 +121,7 @@ async function cloudGetSystemSettings() {
         };
     }
     try {
-        const snap = await db.ref('settings').once('value');
+        const snap = await window.db.ref('settings').once('value');
         return snap.val() || {};
     } catch (e) {
         console.error("Ayar çekme hatası:", e);
@@ -136,7 +136,7 @@ async function cloudUpdateSystemSettings(settings) {
         return;
     }
     try {
-        await db.ref('settings').update(settings);
+        await window.db.ref('settings').update(settings);
     } catch (e) {
         console.error("Bulut ayar güncelleme hatası:", e);
     }

@@ -1,21 +1,27 @@
 // ================= ADMIN PANEL LOGIC (v4 SaaS Cloud) =================
 
-let useCloud = false;
-let dbRef = null;
+// Tüm bağlantılar cloud.js üzerinden window nesnesinde tutulur.
 
 function checkCloudStatus() {
     const dot = document.getElementById('cloud-status');
     const text = document.getElementById('cloud-status-text');
     
-    if (typeof firebase !== 'undefined' && typeof db !== 'undefined' && db !== null) {
-        useCloud = true;
-        dbRef = firebase.database();
-        if(dot) { dot.className = 'status-dot online'; dot.style.background = '#10b981'; } 
-        if(text) text.textContent = 'Buluta Bağlı (SaaS)';
+    if (typeof firebase !== 'undefined' && window.db !== null) {
+        window.useCloud = true;
+        if(dot) { 
+            dot.className = 'status-dot online'; 
+            dot.style.background = '#10b981'; 
+            dot.style.boxShadow = '0 0 10px #10b981';
+        } 
+        if(text) text.textContent = 'Buluta Bağlı (SaaS Active)';
         return true;
     } else {
-        if(dot) { dot.className = 'status-dot offline'; dot.style.background = '#94a3b8'; }
-        if(text) text.textContent = 'Yerel Mod (Geliştirici)';
+        if(dot) { 
+            dot.className = 'status-dot offline'; 
+            dot.style.background = '#94a3b8'; 
+            dot.style.boxShadow = 'none';
+        }
+        if(text) text.textContent = 'Yerel Mod (Cloud Yükleniyor...)';
         return false;
     }
 }
@@ -41,17 +47,17 @@ async function loadData() {
     let logs = [];
     let stats = { totalPages: 0, nsfwCount: 0, totalCost: 0 };
 
-    if (useCloud) {
+    if (window.useCloud) {
         // --- BULUT MODU (Firebase) ---
         try {
-            const licenseSnap = await dbRef.ref('licenses').once('value');
+            const licenseSnap = await window.db.ref('licenses').once('value');
             dbKeys = licenseSnap.val() || {};
             
-            const logSnap = await dbRef.ref('logs').limitToLast(100).once('value');
+            const logSnap = await window.db.ref('logs').limitToLast(100).once('value');
             const logVal = logSnap.val();
             logs = logVal ? Object.values(logVal).reverse() : [];
             
-            const statSnap = await dbRef.ref('stats').once('value');
+            const statSnap = await window.db.ref('stats').once('value');
             const cloudStats = statSnap.val() || {};
             stats.totalPages = cloudStats.totalPages || 0;
             stats.nsfwCount = cloudStats.nsfwCount || 0;
@@ -211,14 +217,14 @@ async function increaseLimit(key) {
     const amount = parseInt(prompt(`"${key}" için ne kadar yeni limit eklemek istersiniz?`, "50"));
     if (isNaN(amount) || amount <= 0) return;
 
-    if (useCloud) {
-        const ref = dbRef.ref(`licenses/${key}/limit`);
+    if (window.useCloud) {
+        const ref = window.db.ref(`licenses/${key}/limit`);
         await ref.transaction(curr => (curr || 0) + amount);
         await cloudLogEvent('LIMIT_UPGRADE', `Bulut Limiti Artırıldı: ${key} (+${amount})`);
     } else {
-        const db = JSON.parse(localStorage.getItem('manga_saas_db'));
-        db[key].limit += amount;
-        localStorage.setItem('manga_saas_db', JSON.stringify(db));
+        const localDb = JSON.parse(localStorage.getItem('manga_saas_db'));
+        localDb[key].limit += amount;
+        localStorage.setItem('manga_saas_db', JSON.stringify(localDb));
     }
     loadData();
     alert("Limit güncellendi!");
@@ -227,8 +233,8 @@ async function increaseLimit(key) {
 async function deleteKey(key) {
     if (!confirm(`"${key}" lisansını silmek istediğinize emin misiniz?`)) return;
 
-    if (useCloud) {
-        await dbRef.ref(`licenses/${key}`).remove();
+    if (window.useCloud) {
+        await window.db.ref(`licenses/${key}`).remove();
         await cloudLogEvent('KEY_DELETE', `Bulut Lisansı Silindi: ${key}`);
     } else {
         const db = JSON.parse(localStorage.getItem('manga_saas_db'));
@@ -247,13 +253,13 @@ async function saveNewKey() {
 
     const newKeyData = { limit, used: 0, engine, created: new Date().toISOString() };
 
-    if (useCloud) {
-        await dbRef.ref(`licenses/${key}`).set(newKeyData);
+    if (window.useCloud) {
+        await window.db.ref(`licenses/${key}`).set(newKeyData);
         await cloudLogEvent('NEW_KEY', `Yeni Bulut Lisansı: ${key}`);
     } else {
-        const db = JSON.parse(localStorage.getItem('manga_saas_db')) || {};
-        db[key] = newKeyData;
-        localStorage.setItem('manga_saas_db', JSON.stringify(db));
+        const localDb = JSON.parse(localStorage.getItem('manga_saas_db')) || {};
+        localDb[key] = newKeyData;
+        localStorage.setItem('manga_saas_db', JSON.stringify(localDb));
     }
     
     closeModal();
@@ -274,23 +280,23 @@ async function updateSystemSettings() {
         updatedAt: new Date().toISOString()
     };
 
-    if (useCloud) {
+    if (window.useCloud) {
         // Tüm ayarları tek bir bulut düğümünde topla
         await firebase.database().ref('settings').update(settingsData);
         
         // Ayrıca lisans tablosundaki admin şifresini de güncelle (Geri uyumluluk için)
-        const snap = await dbRef.ref('licenses').once('value');
-        const db = snap.val() || {};
-        const adminKey = Object.keys(db).find(k => db[k].isAdmin || db[k].type === 'SINIRSIZ-ADMIN');
-        if (adminKey) await dbRef.ref(`licenses/${adminKey}/password`).set(newPass);
+        const snap = await window.db.ref('licenses').once('value');
+        const cloudDb = snap.val() || {};
+        const adminKey = Object.keys(cloudDb).find(k => cloudDb[k].isAdmin || cloudDb[k].type === 'SINIRSIZ-ADMIN');
+        if (adminKey) await window.db.ref(`licenses/${adminKey}/password`).set(newPass);
     } else {
         // Yerel Mod Kaydı
         localStorage.setItem('manga_edit_api_keys', gKeys);
         localStorage.setItem('manga_grok_key', oKey);
-        const db = JSON.parse(localStorage.getItem('manga_saas_db'));
-        const adminKey = Object.keys(db).find(k => db[k].isAdmin);
-        if (adminKey) db[adminKey].password = newPass;
-        localStorage.setItem('manga_saas_db', JSON.stringify(db));
+        const localDb = JSON.parse(localStorage.getItem('manga_saas_db'));
+        const adminKey = Object.keys(localDb).find(k => localDb[k].isAdmin);
+        if (adminKey) localDb[adminKey].password = newPass;
+        localStorage.setItem('manga_saas_db', JSON.stringify(localDb));
     }
     
     alert("✅ Bulut Ayarları ve API Anahtarları Başarıyla Güncellendi!");
@@ -313,8 +319,8 @@ function generateRandomKey() {
 if (document.getElementById('drive-export-btn')) {
     document.getElementById('drive-export-btn').addEventListener('click', async () => {
         let logs = [];
-        if (useCloud) {
-            const logSnap = await dbRef.ref('logs').once('value');
+        if (window.useCloud) {
+            const logSnap = await window.db.ref('logs').once('value');
             logs = Object.values(logSnap.val() || {});
         } else {
             logs = JSON.parse(localStorage.getItem('manga_admin_logs') || '[]');
@@ -343,13 +349,13 @@ if (document.getElementById('drive-export-btn')) {
 async function clearEvidence() {
     if (!confirm("Tüm yakalanan resimleri silmek istediğinize emin misiniz?")) return;
     
-    if (useCloud) {
+    if (window.useCloud) {
         // Bulutta resim içeren logları temizle veya resmi null yap
-        const logSnap = await dbRef.ref('logs').once('value');
-        const logs = logSnap.val() || {};
-        for (let id in logs) {
-            if (logs[id].evidence) {
-                await dbRef.ref(`logs/${id}/evidence`).remove();
+        const logSnap = await window.db.ref('logs').once('value');
+        const cloudLogs = logSnap.val() || {};
+        for (let id in cloudLogs) {
+            if (cloudLogs[id].evidence) {
+                await window.db.ref(`logs/${id}/evidence`).remove();
             }
         }
     } else {
