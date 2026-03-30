@@ -3,7 +3,6 @@
 let useCloud = false;
 let dbRef = null;
 
-// Bulut Durumu Kontrolü (cloud.js üzerinden)
 function checkCloudStatus() {
     const dot = document.getElementById('cloud-status');
     const text = document.getElementById('cloud-status-text');
@@ -11,36 +10,43 @@ function checkCloudStatus() {
     if (typeof firebase !== 'undefined' && typeof db !== 'undefined' && db !== null) {
         useCloud = true;
         dbRef = firebase.database();
-        if(dot) dot.className = 'status-dot online';
+        if(dot) { dot.className = 'status-dot online'; dot.style.background = '#10b981'; } 
         if(text) text.textContent = 'Buluta Bağlı (SaaS)';
         return true;
     } else {
-        if(dot) dot.className = 'status-dot offline';
+        if(dot) { dot.className = 'status-dot offline'; dot.style.background = '#94a3b8'; }
         if(text) text.textContent = 'Yerel Mod (Geliştirici)';
         return false;
     }
 }
 
+// Hemen başlat (Girişten bağımsız olarak sistem hazır olsun)
+setTimeout(checkCloudStatus, 500);
+
 // 0. Güvenli Giriş Paneli
 async function checkAdminLogin() {
-    const input = document.getElementById('admin-login-pass').value.trim().toUpperCase();
+    const inputField = document.getElementById('admin-login-pass');
+    const input = inputField.value.trim().toUpperCase();
     const errorEl = document.getElementById('admin-login-error');
+    const overlay = document.getElementById('admin-login-overlay');
     
-    // 🛡️ FAIL-SAFE: ROOT anahtarı bulut sistemini beklemeden her zaman çalışmalı
+    console.log("🔑 Giriş denemesi yapılıyor...");
+
+    // 🛡️ FAIL-SAFE: ROOT anahtarı her zaman çalışmalı
     if (input === 'ROOT') {
-        document.getElementById('admin-login-overlay').style.display = 'none';
+        overlay.style.display = 'none';
         localStorage.setItem('manga_admin_session', Date.now());
-        loadData();
+        loadData(); // Verileri şimdi çekmeye başla
         return;
     }
 
     try {
-        // Diğer özel şifreler için buluta bak (Burada takılma olabilir, bu yüzden try-catch içinde)
+        // Diğer özel şifreler için buluta bak
         const settings = await cloudGetSystemSettings();
         const master = (settings.admin_password || '').toUpperCase();
 
         if (master !== '' && input === master) {
-            document.getElementById('admin-login-overlay').style.display = 'none';
+            overlay.style.display = 'none';
             localStorage.setItem('manga_admin_session', Date.now());
             loadData();
         } else {
@@ -54,6 +60,8 @@ async function checkAdminLogin() {
 
 // 1. Verileri Yükle (Bulut ve Yerel Hibrit)
 async function loadData() {
+    checkCloudStatus();
+    
     // Session kontrolü (Giriş yapılmamışsa yüklemeyi durdur)
     if (!localStorage.getItem('manga_admin_session') && document.getElementById('admin-login-overlay').style.display !== 'none') {
         console.warn("🔐 Yönetici girişi bekleniyor...");
@@ -61,7 +69,6 @@ async function loadData() {
     }
 
     console.log("📊 SaaS Verileri senkronize ediliyor...");
-    checkCloudStatus();
     
     let dbKeys = {};
     let logs = [];
@@ -418,10 +425,11 @@ setInterval(() => {
 }, 1000);
 
 window.onload = () => {
+    checkCloudStatus();
     // Session varsa overlay'i gizle ve verileri yükle
     if (localStorage.getItem('manga_admin_session')) {
         const overlay = document.getElementById('admin-login-overlay');
         if (overlay) overlay.style.display = 'none';
-        loadData();
     }
+    loadData();
 };
