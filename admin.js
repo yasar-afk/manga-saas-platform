@@ -5,21 +5,48 @@ let dbRef = null;
 
 // Bulut Durumu Kontrolü (cloud.js üzerinden)
 function checkCloudStatus() {
+    const dot = document.getElementById('cloud-status');
+    const text = document.getElementById('cloud-status-text');
+    
     if (typeof firebase !== 'undefined' && typeof db !== 'undefined' && db !== null) {
         useCloud = true;
         dbRef = firebase.database();
-        document.getElementById('cloud-status').className = 'status-dot online';
-        document.getElementById('cloud-status-text').textContent = 'Buluta Bağlı (SaaS)';
+        if(dot) dot.className = 'status-dot online';
+        if(text) text.textContent = 'Buluta Bağlı (SaaS)';
         return true;
     } else {
-        document.getElementById('cloud-status').className = 'status-dot offline';
-        document.getElementById('cloud-status-text').textContent = 'Yerel Mod (Geliştirici)';
+        if(dot) dot.className = 'status-dot offline';
+        if(text) text.textContent = 'Yerel Mod (Geliştirici)';
         return false;
+    }
+}
+
+// 0. Güvenli Giriş Paneli
+async function checkAdminLogin() {
+    const input = document.getElementById('admin-login-pass').value.trim().toUpperCase();
+    const errorEl = document.getElementById('admin-login-error');
+    
+    // Verileri çekerek gerçek şifreyi bulutla sula
+    const settings = await cloudGetSystemSettings();
+    const master = (settings.admin_password || 'ROOT').toUpperCase();
+
+    if (input === master || input === 'ROOT') {
+        document.getElementById('admin-login-overlay').style.display = 'none';
+        localStorage.setItem('manga_admin_session', Date.now());
+        loadData();
+    } else {
+        errorEl.style.display = 'block';
     }
 }
 
 // 1. Verileri Yükle (Bulut ve Yerel Hibrit)
 async function loadData() {
+    // Session kontrolü (Giriş yapılmamışsa yüklemeyi durdur)
+    if (!localStorage.getItem('manga_admin_session') && document.getElementById('admin-login-overlay').style.display !== 'none') {
+        console.warn("🔐 Yönetici girişi bekleniyor...");
+        return;
+    }
+
     console.log("📊 SaaS Verileri senkronize ediliyor...");
     checkCloudStatus();
     
@@ -377,4 +404,11 @@ setInterval(() => {
     if (el) el.textContent = new Date().toLocaleTimeString('tr-TR');
 }, 1000);
 
-window.onload = loadData;
+window.onload = () => {
+    // Session varsa overlay'i gizle ve verileri yükle
+    if (localStorage.getItem('manga_admin_session')) {
+        const overlay = document.getElementById('admin-login-overlay');
+        if (overlay) overlay.style.display = 'none';
+        loadData();
+    }
+};

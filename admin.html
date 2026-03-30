@@ -10,6 +10,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
+    <div id="admin-login-overlay" style="position:fixed; inset:0; background:var(--background); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+        <div class="card glass" style="width:350px; text-align:center; padding:40px;">
+            <div style="font-size:40px; color:var(--primary); margin-bottom:10px;"><i class="fa-solid fa-unlock-keyhole"></i></div>
+            <h2 style="margin-bottom:20px;">Admin Girişi</h2>
+            <input type="password" id="admin-login-pass" placeholder="Yönetici Şifresi" onkeyup="if(event.key === 'Enter') checkAdminLogin()" style="width:100%; padding:12px; margin-bottom:20px; border-radius:6px; background:rgba(0,0,0,0.3); color:white; border:1px solid var(--border); text-align:center;">
+            <button onclick="checkAdminLogin()" class="action-btn primary full-width">Giriş Yap</button>
+            <p id="admin-login-error" style="color:var(--error); font-size:0.8rem; margin-top:15px; display:none;">Hatalı Yönetici Şifresi!</p>
+        </div>
+    </div>
+
     <div class="admin-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -33,7 +43,10 @@
             <header>
                 <div class="header-info">
                     <h1>Hoşgeldiniz, <span class="admin-name">Yönetici</span></h1>
-                    <p>Sistem genel durumunu ve lisansları buradan yönetebilirsiniz.</p>
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+                        <span id="cloud-status" class="status-dot online"></span>
+                        <p id="cloud-status-text" style="margin:0; font-size:0.75rem;">Sistem Hazırlanıyor...</p>
+                    </div>
                 </div>
                 <div class="header-actions">
                     <button class="refresh-btn" onclick="loadData()"><i class="fa-solid fa-rotate"></i> Verileri Yenile</button>
