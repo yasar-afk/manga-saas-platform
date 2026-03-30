@@ -187,14 +187,23 @@
                         <div class="setting-item" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
                             <label><i class="fa-solid fa-key"></i> Bulut API Anahtarları</label>
                             <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px;">Bu anahtarlar tüm kullanıcılara güvenle dağıtılır. Boş bırakmayın.</p>
-                            <div class="form-group" style="margin-bottom:10px;">
-                                <label style="font-size:0.7rem; opacity:0.7;">Gemini API Anahtarları (Virgülle ayırın)</label>
-                                <input type="password" id="cloud-gemini-keys" placeholder="sk-..." style="width:100%; padding:8px; border-radius:4px; background:rgba(0,0,0,0.2); color:white; border:1px solid var(--border);">
+                            
+                            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px;">
+                                <label style="font-size:0.8rem; font-weight:700; color:var(--text-muted);">Bulut Gemini Anahtarları (Liste)</label>
+                                <div style="display:flex; gap:10px;">
+                                    <textarea id="cloud-gemini-keys" placeholder="AIzaSy...&#10;AIzaSy..." style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.3); color:white; min-height:80px; font-family:monospace;"></textarea>
+                                    <div id="gemini-verify-status" style="width:120px; font-size:0.75rem; display:flex; flex-direction:column; justify-content:center; gap:5px;"></div>
+                                </div>
                             </div>
-                            <div class="form-group" style="margin-bottom:15px;">
-                                <label style="font-size:0.7rem; opacity:0.7;">OpenRouter API Anahtarı</label>
-                                <input type="password" id="cloud-grok-key" placeholder="sk-or-v1-..." style="width:100%; padding:8px; border-radius:4px; background:rgba(0,0,0,0.2); color:white; border:1px solid var(--border);">
+
+                            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px;">
+                                <label style="font-size:0.8rem; font-weight:700; color:var(--text-muted);">Bulut OpenRouter (Grok/Qwen) Anahtarı</label>
+                                <div style="display:flex; gap:10px;">
+                                    <input type="password" id="cloud-grok-key" placeholder="sk-or-v1-..." style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.3); color:white;">
+                                    <div id="grok-verify-status" style="width:120px; font-size:0.75rem; display:flex; flex-direction:column; justify-content:center; gap:5px;"></div>
+                                </div>
                             </div>
+                            
                             <button class="action-btn success full-width" onclick="updateSystemSettings()">Bulut Ayarlarını Kaydet</button>
                         </div>
 

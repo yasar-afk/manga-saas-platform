@@ -90,16 +90,16 @@ async function loadData() {
     renderLogs(logs);
     renderGallery(logs);
     
-    // 3. Bulut Sistem Ayarlarını Yükle (API Keyleri vb.)
+    // 3. Bulut Sistem Ayarlarını Yükle
+    loadSettingsToUI();
+}
+
+async function loadSettingsToUI() {
     const settings = await cloudGetSystemSettings();
     if (settings) {
         if (document.getElementById('cloud-gemini-keys')) document.getElementById('cloud-gemini-keys').value = settings.gemini_keys || '';
         if (document.getElementById('cloud-grok-key'))   document.getElementById('cloud-grok-key').value = settings.grok_key || '';
-        
-        const adminKey = Object.values(dbKeys).find(k => k.isAdmin || k.type === 'SINIRSIZ-ADMIN');
-        if (adminKey) {
-            document.getElementById('admin-password-input').value = adminKey.password || settings.admin_password || 'root';
-        }
+        if (document.getElementById('admin-password-input')) document.getElementById('admin-password-input').value = settings.admin_password || '';
     }
 }
 
@@ -266,17 +266,75 @@ async function saveNewKey() {
     loadData();
 }
 
+// --- API DOĞRULAMA SİSTEMİ (v5) ---
+async function verifyGeminiKey(key) {
+    try {
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({contents: [{parts: [{text: "hi"}]}]})
+        });
+        return resp.ok;
+    } catch(e) { return false; }
+}
+
+async function verifyGrokKey(key) {
+    try {
+        const resp = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': window.location.origin,
+                'X-Title': 'Manga Editor Pro Admin'
+            },
+            body: JSON.stringify({model: "google/gemini-flash-1.5", messages: [{role: "user", content: "hi"}], max_tokens: 1})
+        });
+        return resp.ok;
+    } catch(e) { return false; }
+}
+
 async function updateSystemSettings() {
+    const geminiRaw = document.getElementById('cloud-gemini-keys').value.trim();
+    const grokKey = document.getElementById('cloud-grok-key').value.trim();
     const newPass = document.getElementById('admin-password-input').value.trim();
-    const gKeys = document.getElementById('cloud-gemini-keys').value.trim();
-    const oKey = document.getElementById('cloud-grok-key').value.trim();
+
+    const gStatus = document.getElementById('gemini-verify-status');
+    const oStatus = document.getElementById('grok-verify-status');
+
+    // 1. Gemini Doğrulama
+    gStatus.innerHTML = '<span style="color:var(--warning);">⌛ Kontrol ediliyor...</span>';
+    const rawKeys = geminiRaw.split(/[,\n]+/).map(k => k.trim()).filter(k => k.length > 10);
+    const validGemini = [];
     
-    if (newPass.length < 3) return alert("Şifre çok kısa!");
+    for (let k of rawKeys) {
+        if (await verifyGeminiKey(k)) validGemini.push(k);
+    }
+
+    if (rawKeys.length > 0 && validGemini.length === 0) {
+        gStatus.innerHTML = '<span style="color:var(--error);">❌ Hatalı/Kapalı Anahtarlar!</span>';
+        if(!confirm("Girilen Gemini anahtarları çalışmıyor. Yine de kaydetmek istiyor musunuz?")) return;
+    } else {
+        gStatus.innerHTML = `<span style="color:var(--success);">✅ ${validGemini.length}/${rawKeys.length} Anahtar Aktif</span>`;
+    }
+
+    // 2. OpenRouter Doğrulama
+    let grokOk = true;
+    if (grokKey) {
+        oStatus.innerHTML = '<span style="color:var(--warning);">⌛ Kontrol ediliyor...</span>';
+        grokOk = await verifyGrokKey(grokKey);
+        if (grokOk) {
+            oStatus.innerHTML = '<span style="color:var(--success);">✅ Anahtar Aktif</span>';
+        } else {
+            oStatus.innerHTML = '<span style="color:var(--error);">❌ Hatalı Anahtar!</span>';
+            if(!confirm("OpenRouter anahtarı çalışmıyor. Yine de kaydetmek istiyor musunuz?")) return;
+        }
+    }
 
     const settingsData = {
         admin_password: newPass,
-        gemini_keys: gKeys,
-        grok_key: oKey,
+        gemini_keys: validGemini.join(','),
+        grok_key: grokKey,
         updatedAt: new Date().toISOString()
     };
 
