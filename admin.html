@@ -244,6 +244,40 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <script src="cloud.js"></script>
+    <script>
+        // İÇERİDEN GİRİŞ SİSTEMİ (Inline Fix)
+        async function checkAdminLogin() {
+            const input = document.getElementById('admin-login-pass').value.trim().toUpperCase();
+            const overlay = document.getElementById('admin-login-overlay');
+            const error = document.getElementById('admin-login-error');
+            
+            console.log("🛠️ İçeriden giriş denemesi: " + input);
+
+            if (input === 'ROOT') {
+                overlay.style.display = 'none';
+                localStorage.setItem('manga_admin_session', Date.now());
+                if (typeof loadData === 'function') loadData();
+                return;
+            }
+
+            try {
+                if (typeof cloudGetSystemSettings === 'function') {
+                    const settings = await cloudGetSystemSettings();
+                    const master = (settings.admin_password || '').toUpperCase();
+                    if (master && input === master) {
+                        overlay.style.display = 'none';
+                        localStorage.setItem('manga_admin_session', Date.now());
+                        if (typeof loadData === 'function') loadData();
+                        return;
+                    }
+                }
+                error.style.display = 'block';
+            } catch(e) {
+                console.error(e);
+                error.style.display = 'block';
+            }
+        }
+    </script>
     <script src="admin.js"></script>
 </body>
 </html>

@@ -23,40 +23,7 @@ function checkCloudStatus() {
 // Hemen başlat (Girişten bağımsız olarak sistem hazır olsun)
 setTimeout(checkCloudStatus, 500);
 
-// 0. Güvenli Giriş Paneli
-async function checkAdminLogin() {
-    const inputField = document.getElementById('admin-login-pass');
-    const input = inputField.value.trim().toUpperCase();
-    const errorEl = document.getElementById('admin-login-error');
-    const overlay = document.getElementById('admin-login-overlay');
-    
-    console.log("🔑 Giriş denemesi yapılıyor...");
-
-    // 🛡️ FAIL-SAFE: ROOT anahtarı her zaman çalışmalı
-    if (input === 'ROOT') {
-        overlay.style.display = 'none';
-        localStorage.setItem('manga_admin_session', Date.now());
-        loadData(); // Verileri şimdi çekmeye başla
-        return;
-    }
-
-    try {
-        // Diğer özel şifreler için buluta bak
-        const settings = await cloudGetSystemSettings();
-        const master = (settings.admin_password || '').toUpperCase();
-
-        if (master !== '' && input === master) {
-            overlay.style.display = 'none';
-            localStorage.setItem('manga_admin_session', Date.now());
-            loadData();
-        } else {
-            errorEl.style.display = 'block';
-        }
-    } catch (e) {
-        console.error("Giriş Hatası:", e);
-        errorEl.style.display = 'block';
-    }
-}
+// NOT: checkAdminLogin artık admin.html içinde inline olarak tanımlandı.
 
 // 1. Verileri Yükle (Bulut ve Yerel Hibrit)
 async function loadData() {
