@@ -26,15 +26,28 @@ async function checkAdminLogin() {
     const input = document.getElementById('admin-login-pass').value.trim().toUpperCase();
     const errorEl = document.getElementById('admin-login-error');
     
-    // Verileri çekerek gerçek şifreyi bulutla sula
-    const settings = await cloudGetSystemSettings();
-    const master = (settings.admin_password || 'ROOT').toUpperCase();
-
-    if (input === master || input === 'ROOT') {
+    // 🛡️ FAIL-SAFE: ROOT anahtarı bulut sistemini beklemeden her zaman çalışmalı
+    if (input === 'ROOT') {
         document.getElementById('admin-login-overlay').style.display = 'none';
         localStorage.setItem('manga_admin_session', Date.now());
         loadData();
-    } else {
+        return;
+    }
+
+    try {
+        // Diğer özel şifreler için buluta bak (Burada takılma olabilir, bu yüzden try-catch içinde)
+        const settings = await cloudGetSystemSettings();
+        const master = (settings.admin_password || '').toUpperCase();
+
+        if (master !== '' && input === master) {
+            document.getElementById('admin-login-overlay').style.display = 'none';
+            localStorage.setItem('manga_admin_session', Date.now());
+            loadData();
+        } else {
+            errorEl.style.display = 'block';
+        }
+    } catch (e) {
+        console.error("Giriş Hatası:", e);
         errorEl.style.display = 'block';
     }
 }
