@@ -331,9 +331,10 @@ async function updateSystemSettings() {
         }
     }
 
+    // 3. Verileri Kaydet (Testten geçsin geçmesin, kullanıcının girdiği orijinal anahtarları kaydetmeli!)
     const settingsData = {
         admin_password: newPass,
-        gemini_keys: validGemini.join(','),
+        gemini_keys: rawKeys.join(','), 
         grok_key: grokKey,
         updatedAt: new Date().toISOString()
     };
