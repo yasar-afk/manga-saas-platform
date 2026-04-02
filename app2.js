@@ -1045,7 +1045,7 @@ async function callGeminiWithRotation(base64Data) {
 }
 
 async function callGrokWithVision(base64Data) {
-    const grokKey = document.getElementById('grok-api-key')?.value || 'YOUR_OPENROUTER_KEY';
+    const grokKey = (window.LOCAL_KEYS && window.LOCAL_KEYS.GROK_KEY) || document.getElementById('grok-api-key')?.value || 'YOUR_OPENROUTER_KEY';
 
 
     const promptText = `

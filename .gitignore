@@ -12,3 +12,5 @@ Thumbs.db
 ESKI_DOSYALAR/
 *.zip
 *.log
+
+local_keys.js

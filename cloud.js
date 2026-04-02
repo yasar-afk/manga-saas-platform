@@ -4,7 +4,7 @@
  */
 
 const FIREBASE_CONFIG = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
+    apiKey: (window.LOCAL_KEYS && window.LOCAL_KEYS.FIREBASE_API_KEY) || "YOUR_FIREBASE_API_KEY",
     authDomain: "manga-saas.firebaseapp.com",
     databaseURL: "https://manga-saas-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "manga-saas",
@@ -18,7 +18,7 @@ window.useCloud = false;
 
 // 1. Firebase Başlatma
 try {
-    if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey === "YOUR_FIREBASE_API_KEY") {
+    if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey !== "YOUR_FIREBASE_API_KEY") {
         firebase.initializeApp(FIREBASE_CONFIG);
         
         // KRİTİK: database() çağrısı URL hatalarını burada fırlatır.
@@ -153,15 +153,15 @@ async function cloudGetSystemSettings() {
         const settings = snap.val() || {};
         
         // 🔒 HARDCODED YENİ LİSANS SİSTEMİ: Ayarlardan asla sorma, direkt sistemden gömülü çek.
-        settings.gemini_keys = localStorage.getItem('manga_edit_api_keys') || "YOUR_GEMINI_KEY";
-        settings.grok_key = localStorage.getItem('grok_api_key') || "YOUR_OPENROUTER_KEY";
+        settings.gemini_keys = (window.LOCAL_KEYS && window.LOCAL_KEYS.GEMINI_KEYS) || localStorage.getItem('manga_edit_api_keys') || "YOUR_GEMINI_KEY";
+        settings.grok_key = (window.LOCAL_KEYS && window.LOCAL_KEYS.GROK_KEY) || localStorage.getItem('grok_api_key') || "YOUR_OPENROUTER_KEY";
         
         return settings;
     } catch (e) {
         console.error("Ayar çekme hatası:", e);
         return {
-            gemini_keys: "YOUR_GEMINI_KEY",
-            grok_key: "YOUR_OPENROUTER_KEY"
+            gemini_keys: (window.LOCAL_KEYS && window.LOCAL_KEYS.GEMINI_KEYS) || "YOUR_GEMINI_KEY",
+            grok_key: (window.LOCAL_KEYS && window.LOCAL_KEYS.GROK_KEY) || "YOUR_OPENROUTER_KEY"
         };
     }
 }
