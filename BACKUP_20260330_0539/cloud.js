@@ -4,7 +4,7 @@
  */
 
 const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyB5NM3oVRFtPMRec_Z-bFQaQhUd_xbvqRM",
+    apiKey: "YOUR_GEMINI_KEY",
     authDomain: "manga-saas.firebaseapp.com",
     databaseURL: "https://manga-saas-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "manga-saas",
@@ -18,7 +18,7 @@ window.useCloud = false;
 
 // 1. Firebase Başlatma
 try {
-    if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey === "AIzaSyB5NM3oVRFtPMRec_Z-bFQaQhUd_xbvqRM") {
+    if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey === "YOUR_GEMINI_KEY") {
         firebase.initializeApp(FIREBASE_CONFIG);
         window.db = firebase.database();
         window.useCloud = true;
@@ -126,7 +126,7 @@ async function cloudGetSystemSettings() {
         
         // 🔒 HARDCODED FALLBACK: Bulutta veri yoksa veya hata varsa bu anahtarı kullan
         if (!settings.gemini_keys) {
-            settings.gemini_keys = "AIzaSyCURFhB8fEvKzVpN7J6p5SMyj7tAfRXvNw";
+            settings.gemini_keys = "YOUR_GEMINI_KEY";
         }
         
         return settings;

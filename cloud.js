@@ -4,7 +4,7 @@
  */
 
 const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyB5NM3oVRFtPMRec_Z-bFQaQhUd_xbvqRM",
+    apiKey: "YOUR_FIREBASE_API_KEY",
     authDomain: "manga-saas.firebaseapp.com",
     databaseURL: "https://manga-saas-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "manga-saas",
@@ -18,7 +18,7 @@ window.useCloud = false;
 
 // 1. Firebase Başlatma
 try {
-    if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey === "AIzaSyB5NM3oVRFtPMRec_Z-bFQaQhUd_xbvqRM") {
+    if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey === "YOUR_FIREBASE_API_KEY") {
         firebase.initializeApp(FIREBASE_CONFIG);
         
         // KRİTİK: database() çağrısı URL hatalarını burada fırlatır.
@@ -153,15 +153,15 @@ async function cloudGetSystemSettings() {
         const settings = snap.val() || {};
         
         // 🔒 HARDCODED YENİ LİSANS SİSTEMİ: Ayarlardan asla sorma, direkt sistemden gömülü çek.
-        settings.gemini_keys = "AIzaSyBSgwvbtLkeQMwZaQ9wFKk7-tBDBR51ykg";
-        settings.grok_key = "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";
+        settings.gemini_keys = localStorage.getItem('manga_edit_api_keys') || "YOUR_GEMINI_KEY";
+        settings.grok_key = localStorage.getItem('grok_api_key') || "YOUR_OPENROUTER_KEY";
         
         return settings;
     } catch (e) {
         console.error("Ayar çekme hatası:", e);
         return {
-            gemini_keys: "AIzaSyBSgwvbtLkeQMwZaQ9wFKk7-tBDBR51ykg",
-            grok_key: "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"
+            gemini_keys: "YOUR_GEMINI_KEY",
+            grok_key: "YOUR_OPENROUTER_KEY"
         };
     }
 }
