@@ -23,25 +23,6 @@ async function verifyLicense() {
     const license = await cloudVerifyLicense(keyInput); // Buluttan (veya local fallback’ten) sorgula
     
     if (license) {
-        // Değişkenleri global state'e kaydet
-        currentLicenseKey = keyInput;
-        currentLimit = license.limit || 0;
-        usedPages = license.used || 0;
-        
-        // Lisansın motorunu sisteme tanıt (Yoksa varsayılan Gemini)
-        const engineSelect = document.getElementById('main-ai-engine');
-        if (engineSelect) {
-            const engineValue = license.engine || 'gemini';
-            // Eğer select içinde bu seçenek yoksa ekle (Gizli select)
-            if (!Array.from(engineSelect.options).some(opt => opt.value === engineValue)) {
-                const newOpt = document.createElement('option');
-                newOpt.value = engineValue;
-                engineSelect.appendChild(newOpt);
-            }
-            engineSelect.value = engineValue;
-            console.log("🤖 Lisans motoru aktifleştirildi:", engineValue);
-        }
-        
         // Admin Giriş Koruması (Opsiyonel: cloud.js içinde de yapılabilir)
         if (license.isAdmin) {
             const pass = prompt("Admin şifresini giriniz:");
@@ -1045,8 +1026,11 @@ async function callGeminiWithRotation(base64Data) {
 }
 
 async function callGrokWithVision(base64Data) {
-    const grokKey = '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';
-
+    const grokKeyInput = document.getElementById('grok-api-key');
+    const grokKey = grokKeyInput ? grokKeyInput.value.trim() : '';
+    if (!grokKey) {
+        throw new Error('Grok API anahtarı boş! Lütfen sansür aşma modu için API Key girin.');
+    }
 
     const promptText = `
     COMMAND: Locate and translate ALL manga text (any language: Portuguese, Japanese, etc.) into Natural Turkish.
@@ -1058,7 +1042,7 @@ async function callGrokWithVision(base64Data) {
     OUTPUT: Return ONLY a valid JSON object. 
     {"is_nsfw":false, "translations":[{"id":1, "original":"...", "translated":"...", "box":{"x":.., "y":.., "w":.., "h":..}}]}`;
 
-    const selectedModel = "qwen/qwen3-vl-8b-instruct"; // Resim okuyabilen (Vision) modeline geri dönüldü
+    const selectedModel = document.getElementById('main-ai-engine') ? document.getElementById('main-ai-engine').value : "qwen/qwen3-vl-8b-instruct";
 
     // OpenRouter için yapılandırıldı
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -1083,7 +1067,7 @@ async function callGrokWithVision(base64Data) {
     });
 
     if (!response.ok) {
-        if (response.status === 429 || response.status === 402) {
+        if (response.status === 429) {
             throw new Error('QUOTA_EXCEEDED_ALL');
         }
         let errText = await response.text();
@@ -1245,7 +1229,7 @@ analyzeBtn.addEventListener('click', async () => {
             // === TEKİL QWEN SİSTEMİ (Hızlı ve Sorunsuz) ===
             loadingIndicator.innerHTML = '<span class="loader"></span><p>Qwen ile çeviriliyor...</p>';
             const result = await callGrokWithVision(base64Data);
-            detectedTexts = Array.isArray(result) ? result : (result.translations || []);
+            detectedTexts = result.translations || [];
             isNsfwDetected = result.is_nsfw || false;
         } else {
             // === STANDART GEMINI SİSTEMİ ===
@@ -1278,7 +1262,7 @@ analyzeBtn.addEventListener('click', async () => {
         }
         
         if (error.message === 'QUOTA_EXCEEDED_ALL') {
-            alert(`Sistem Uyarı: Qwen/Grok API anahtarının kotası (kredisi) dolmuştur! Lütfen yeni kredi yükleyin veya sistem yöneticinize başvurun.`);
+            alert(`Tüm API Anahtarlarının Kotası Doldu! (${keys.length} anahtar denendi)\n\nÇözüm: Farklı Google hesaplarından yeni API anahtarları alıp virgülle ayırarak ekleyin.\n\n👉 https://aistudio.google.com/apikey adresinden ücretsiz anahtar alabilirsiniz.`);
         } else {
             alert(`Sistem Hatası: ${error.message}`);
         }
@@ -2075,21 +2059,20 @@ applyBtn.addEventListener('click', () => {
         return;
     }
 
-    // Doğrudan ana resmi kalıcı olarak çizeceğimiz context
+    // Doğrudan ana resmi kalıcı olarar çizeceğimiz context
     const tCtx = ctx; 
+    const canvasRect = canvas.getBoundingClientRect();
+    
+    // Koordinatları ekrandan resmin gerçek piksellerine çevirmek için oranlar
+    const scaleX = canvas.width / canvasRect.width;
+    const scaleY = canvas.height / canvasRect.height;
 
     elements.forEach(el => {
-        // 🎯 KESİN ÇÖZÜM: Ekran pikselleri yerine doğrudan elementin stilindeki % (YÜZDE) değerlerini kullanıyoruz.
-        // Bu sayede Zoom yapılsa bile kayma milimetrik olarak sıfırlanır.
-        const pctX = parseFloat(el.style.left) || 0;
-        const pctY = parseFloat(el.style.top) || 0;
-        const pctW = parseFloat(el.style.width) || 20;
-        const pctH = parseFloat(el.style.height) || 10;
-
-        const x = (pctX / 100) * canvas.width;
-        const y = (pctY / 100) * canvas.height;
-        const w = (pctW / 100) * canvas.width;
-        const h = (pctH / 100) * canvas.height;
+        const elRect = el.getBoundingClientRect();
+        const x = (elRect.left - canvasRect.left) * scaleX;
+        const y = (elRect.top - canvasRect.top) * scaleY;
+        const w = elRect.width * scaleX;
+        const h = elRect.height * scaleY;
 
         // Özelleştirilmiş font ve renkleri al
         const textColor = el.dataset.textColor || '#000000';
@@ -2121,11 +2104,6 @@ applyBtn.addEventListener('click', () => {
             tCtx.closePath();
             tCtx.fill();
         }
-
-        // Ekran boyutu ile gerçek resim boyutu (canvas) arasındaki ölçeği bul
-        const rect = relativeContainer.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
 
         // Yazı detayları
         tCtx.fillStyle = textColor;

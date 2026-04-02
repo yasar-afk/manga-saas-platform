@@ -6,7 +6,8 @@ function checkCloudStatus() {
     const dot = document.getElementById('cloud-status');
     const text = document.getElementById('cloud-status-text');
     
-    if (window.useCloud) {
+    if (typeof firebase !== 'undefined' && window.db !== null) {
+        window.useCloud = true;
         if(dot) { 
             dot.className = 'status-dot online'; 
             dot.style.background = '#10b981'; 
@@ -20,7 +21,7 @@ function checkCloudStatus() {
             dot.style.background = '#94a3b8'; 
             dot.style.boxShadow = 'none';
         }
-        if(text) text.textContent = 'Yerel Mod (Offline/Local Storage)';
+        if(text) text.textContent = 'Yerel Mod (Cloud Yükleniyor...)';
         return false;
     }
 }
@@ -52,10 +53,9 @@ async function loadData() {
             const licenseSnap = await window.db.ref('licenses').once('value');
             dbKeys = licenseSnap.val() || {};
             
-            const logSnap = await window.db.ref('logs').limitToLast(200).once('value');
+            const logSnap = await window.db.ref('logs').limitToLast(100).once('value');
             const logVal = logSnap.val();
             logs = logVal ? Object.values(logVal).reverse() : [];
-            window.allLogs = logs; // Arama için globalde tut
             
             const statSnap = await window.db.ref('stats').once('value');
             const cloudStats = statSnap.val() || {};
@@ -174,46 +174,16 @@ function renderLogs(logs) {
         
         const logHtml = `
             <div class="log-item ${type.includes('NSFW') ? 'nsfw' : ''}">
-                <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <span class="log-time">${time}</span>
-                    <span class="badge ${type.includes('NSFW') ? 'danger' : 'blue'}" style="font-size:8px;">${type}</span>
-                </div>
-                <span class="log-key"><b>${log.key || 'Sistem'}</b></span>: 
+                <span class="log-time">${time}</span>
+                <span class="log-key">${log.key || 'Sistem'}</span>: 
                 <span class="log-text">${msg}</span>
                 ${log.evidence ? `<button class="action-btn secondary" style="padding:2px 8px; font-size:10px; margin-top:5px;" onclick="showTab('gallery')">Kanıtı Gör</button>` : ''}
             </div>
         `;
-        if (listPreview && idx < 5) listPreview.innerHTML += logHtml;
-        if (listAll) listAll.innerHTML += logHtml;
+        if (idx < 5) listPreview.innerHTML += logHtml;
+        listAll.innerHTML += logHtml;
     });
 }
-
-// --- LOG ARAMA VE SİLME (YENİ) ---
-async function clearAllAdminLogs() {
-    if (!confirm("DİKKAT: Tüm sistem logları kalıcı olarak silinecek. Emin misiniz?")) return;
-    try {
-        if (window.useCloud) {
-            await window.db.ref('logs').remove();
-        } else {
-            localStorage.setItem('manga_admin_logs', '[]');
-        }
-        alert("Sistem logları başarıyla temizlendi.");
-        loadData();
-    } catch(e) { alert("Hata: " + e.message); }
-}
-
-// Arama kutusuna her yazıldığında çalışır
-setTimeout(() => {
-    document.getElementById('log-search')?.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const filtered = (window.allLogs || []).filter(log => 
-            (log.message || '').toLowerCase().includes(term) || 
-            (log.type || '').toLowerCase().includes(term) ||
-            (log.key || '').toLowerCase().includes(term)
-        );
-        renderLogs(filtered);
-    });
-}, 1000);
 
 // Galeri Render
 function renderGallery(logs) {
@@ -284,20 +254,8 @@ async function saveNewKey() {
     const newKeyData = { limit, used: 0, engine, created: new Date().toISOString() };
 
     if (window.useCloud) {
-        try {
-            // Firebase ulaşılamazsa sonsuza kadar beklememesi için 3 saniye zaman aşımı koyduk
-            await Promise.race([
-                window.db.ref(`licenses/${key}`).set(newKeyData),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('FIREBASE_TIMEOUT')), 3000))
-            ]);
-            // Logu arka planda at, bekleme
-            cloudLogEvent('NEW_KEY', `Yeni Bulut Lisansı: ${key}`).catch(()=>{});
-        } catch(e) {
-            console.warn("Bulut veritabanına ulaşılamadı. Anahtar yerele kaydediliyor.", e);
-            const localDb = JSON.parse(localStorage.getItem('manga_saas_db')) || {};
-            localDb[key] = newKeyData;
-            localStorage.setItem('manga_saas_db', JSON.stringify(localDb));
-        }
+        await window.db.ref(`licenses/${key}`).set(newKeyData);
+        await cloudLogEvent('NEW_KEY', `Yeni Bulut Lisansı: ${key}`);
     } else {
         const localDb = JSON.parse(localStorage.getItem('manga_saas_db')) || {};
         localDb[key] = newKeyData;
@@ -344,29 +302,38 @@ async function updateSystemSettings() {
     const gStatus = document.getElementById('gemini-verify-status');
     const oStatus = document.getElementById('grok-verify-status');
 
-    // 1. Gemini Doğrulama (Opsiyonel & Bilgi Amaçlı)
-    gStatus.innerHTML = '<span style="color:var(--warning);">⌛ Test ediliyor...</span>';
-    const rawKeys = geminiRaw.split(/[,\n ]+/).map(k => k.trim()).filter(k => k.length > 10);
+    // 1. Gemini Doğrulama
+    gStatus.innerHTML = '<span style="color:var(--warning);">⌛ Kontrol ediliyor...</span>';
+    const rawKeys = geminiRaw.split(/[,\n]+/).map(k => k.trim()).filter(k => k.length > 10);
     const validGemini = [];
     
-    // Doğrulamayı arka planda yap, kaydetmeyi engelleme!
-    const geminiTest = async (k) => {
-        const ok = await verifyGeminiKey(k);
-        if (ok) validGemini.push(k);
-        return ok;
-    };
-
-    // 2. OpenRouter Doğrulama (Opsiyonel)
-    let grokOk = true;
-    if (grokKey) {
-        oStatus.innerHTML = '<span style="color:var(--warning);">⌛ Test ediliyor...</span>';
-        grokOk = await verifyGrokKey(grokKey);
-        oStatus.innerHTML = grokOk ? '<span style="color:var(--success);">✅ Anahtar Aktif</span>' : '<span style="color:var(--error);">❌ Test Başarısız (CORS?)</span>';
+    for (let k of rawKeys) {
+        if (await verifyGeminiKey(k)) validGemini.push(k);
     }
 
-    // --- KRİTİK DÜZELTME: Verileri Doğrudan Kaydet ---
+    if (rawKeys.length > 0 && validGemini.length === 0) {
+        gStatus.innerHTML = '<span style="color:var(--error);">❌ Hatalı/Kapalı Anahtarlar!</span>';
+        if(!confirm("Girilen Gemini anahtarları çalışmıyor. Yine de kaydetmek istiyor musunuz?")) return;
+    } else {
+        gStatus.innerHTML = `<span style="color:var(--success);">✅ ${validGemini.length}/${rawKeys.length} Anahtar Aktif</span>`;
+    }
+
+    // 2. OpenRouter Doğrulama
+    let grokOk = true;
+    if (grokKey) {
+        oStatus.innerHTML = '<span style="color:var(--warning);">⌛ Kontrol ediliyor...</span>';
+        grokOk = await verifyGrokKey(grokKey);
+        if (grokOk) {
+            oStatus.innerHTML = '<span style="color:var(--success);">✅ Anahtar Aktif</span>';
+        } else {
+            oStatus.innerHTML = '<span style="color:var(--error);">❌ Hatalı Anahtar!</span>';
+            if(!confirm("OpenRouter anahtarı çalışmıyor. Yine de kaydetmek istiyor musunuz?")) return;
+        }
+    }
+
+    // 3. Verileri Kaydet (Testten geçsin geçmesin, kullanıcının girdiği orijinal anahtarları kaydetmeli!)
     const settingsData = {
-        admin_password: newPass || 'root',
+        admin_password: newPass,
         gemini_keys: rawKeys.join(','), 
         grok_key: grokKey,
         updatedAt: new Date().toISOString()

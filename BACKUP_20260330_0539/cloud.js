@@ -20,29 +20,14 @@ window.useCloud = false;
 try {
     if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey === "AIzaSyB5NM3oVRFtPMRec_Z-bFQaQhUd_xbvqRM") {
         firebase.initializeApp(FIREBASE_CONFIG);
-        
-        // KRİTİK: database() çağrısı URL hatalarını burada fırlatır.
-        // Hata alırsa sessizce yerel moda dön.
-        try {
-            window.db = firebase.database();
-            // Eğer URL değiştirilmemiş varsayılan (sahte) URL ise yerele zorla:
-            if (FIREBASE_CONFIG.databaseURL === "https://manga-saas-default-rtdb.europe-west1.firebasedatabase.app") {
-                console.warn("⚠️ Varsayılan Firebase URL'si tespit edildi. Çevrimdışı (Yerel) moda zorlanıyor.");
-                window.useCloud = false;
-            } else {
-                window.useCloud = true;
-                console.log("✅ SaaS Cloud Başarıyla Bağlandı.");
-            }
-        } catch (dbErr) {
-            console.warn("⚠️ Firebase Veritabanı URL hatası. Yerel moda geçiliyor.", dbErr);
-            window.useCloud = false;
-        }
+        window.db = firebase.database();
+        window.useCloud = true;
+        console.log("✅ SaaS Cloud Başarıyla Bağlandı.");
     } else {
         console.warn("⚠️ Firebase ayarları yapılmamış. Yerel (localStorage) modda çalışıyor.");
     }
 } catch (e) {
-    console.error("❌ Firebase Başlatma hatası:", e);
-    window.useCloud = false;
+    console.error("❌ Bulut bağlantı hatası:", e);
 }
 
 // 2. Merkezi Lisans Doğrulama
@@ -53,11 +38,6 @@ async function cloudVerifyLicense(key) {
     // SaaS: Global Padişah Anahtarı (Case-Insensitive Destekli)
     if (inputKey === `SINIRSIZ-ADMIN-${adminToken}`) {
         return { type: 'SINIRSIZ-ADMIN', used: 0, limit: 999999, engine: 'all', isAdmin: true };
-    }
-
-    // 🏆 ÖZEL SÜPER ANAHTAR: Bulut kopsa bile her zaman çalışan master key
-    if (inputKey === 'ULTIMATE-PRO-2026') {
-        return { type: 'ULTIMATE-PREMIUM', used: 0, limit: 9999, engine: 'all', isAdmin: false, created: '2026-03-30' };
     }
 
     if (!useCloud) {
@@ -78,21 +58,14 @@ async function cloudVerifyLicense(key) {
 
 // 3. Merkezi Kredi Tüketimi
 async function cloudConsumeCredit(key) {
-    // 🏆 SÜPER ANAHTAR MUAFİYETİ (Yerel/Bulut fark etmeksizin her zaman en üstte kontrol edilmeli)
-    if (key === 'ULTIMATE-PRO-2026' || key.startsWith('SINIRSIZ-ADMIN')) return true;
-
-    if (!window.useCloud) {
+    if (!useCloud) {
         const localDb = JSON.parse(localStorage.getItem('manga_saas_db') || '{}');
-        if (localDb[key]) {
-            const usedCount = localDb[key].used || 0;
-            const limitCount = localDb[key].limit || 0;
-            if (usedCount < limitCount) {
-                localDb[key].used = usedCount + 1;
-                localStorage.setItem('manga_saas_db', JSON.stringify(localDb));
-                return true;
-            }
+        if (localDb[key] && localDb[key].used < localDb[key].limit) {
+            localDb[key].used++;
+            localStorage.setItem('manga_saas_db', JSON.stringify(localDb));
+            return true;
         }
-        return false;
+        return (key.startsWith('SINIRSIZ-ADMIN'));
     }
 
     // Bulut Modu
@@ -106,8 +79,7 @@ async function cloudConsumeCredit(key) {
         }
         return false;
     } catch (e) {
-        // Hata olsa bile (Bulut kopsa bile) süper keyler devam eder
-        return (key === 'ULTIMATE-PRO-2026' || key.startsWith('SINIRSIZ-ADMIN'));
+        return false;
     }
 }
 
@@ -152,17 +124,15 @@ async function cloudGetSystemSettings() {
         const snap = await window.db.ref('settings').once('value');
         const settings = snap.val() || {};
         
-        // 🔒 HARDCODED YENİ LİSANS SİSTEMİ: Ayarlardan asla sorma, direkt sistemden gömülü çek.
-        settings.gemini_keys = "AIzaSyBSgwvbtLkeQMwZaQ9wFKk7-tBDBR51ykg";
-        settings.grok_key = "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";
+        // 🔒 HARDCODED FALLBACK: Bulutta veri yoksa veya hata varsa bu anahtarı kullan
+        if (!settings.gemini_keys) {
+            settings.gemini_keys = "AIzaSyCURFhB8fEvKzVpN7J6p5SMyj7tAfRXvNw";
+        }
         
         return settings;
     } catch (e) {
         console.error("Ayar çekme hatası:", e);
-        return {
-            gemini_keys: "AIzaSyBSgwvbtLkeQMwZaQ9wFKk7-tBDBR51ykg",
-            grok_key: "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"
-        };
+        return {};
     }
 }
 

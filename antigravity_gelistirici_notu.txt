@@ -1,0 +1,274 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              ANTİGRAVİTY — GELİŞTİRİCİ NOTU & MODEL REHBERİ               ║
+║                         Nisan 2026 / v1.0                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BÖLÜM 1 — SİSTEM GENEL BAKIŞ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Bu not, "Antigravity" kod adıyla geliştirilen tarayıcı tabanlı manga çeviri
+editörünün mevcut durumunu, teknik mimarisini ve gelecekteki geliştirme
+önerilerini özetlemektedir. Sistemi devralacak veya üzerine inşa edecek bir
+yapay zeka ya da geliştirici için referans niteliği taşımaktadır.
+
+
+[ TEKNİK MİMARİ ]
+
+  - Tamamen istemci taraflı (client-side) çalışan tek sayfalık web uygulaması
+  - Temel dosya: app2.js
+  - Backend sunucusu gerektirmez — tarayıcıda koşar
+  - Çeviri motoru: Google Gemini 2.5 Flash (varsayılan)
+  - Döviz kuru kaynağı: Frankfurter API (canlı USD/TRY)
+
+
+[ TAMAMLANAN ÖZELLİKLER ]
+
+  OCR & Çeviri Pipeline
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Manga sayfası görseli API'ye gönderilir; model hem metni okur hem Türkçe'ye
+    çevirir
+  · Her istek için token kullanımı takip edilir
+  · Maliyet canlı döviz kuruyla TL cinsinden ekrana yansıtılır
+
+  Canvas Tabanlı Editör
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Metin blokları sürüklenebilir ve yeniden boyutlandırılabilir
+  · Yazı tipi, boyut, renk, hizalama ayarları mevcut
+  · Seçili bloğu silme ve sayfayı export etme destekleniyor
+
+  Çok Sayfalı Destek
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Birden fazla manga sayfası aynı oturumda yönetilebilir
+  · Sayfalar arası geçişte canvas durumu korunur
+
+  Tamamlanan Hata Düzeltmeleri (6 Kritik Patch)
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Türkçe büyük harf dönüşümü (İ, Ş, Ğ vb.) düzeltildi
+  · Canlı döviz kuru entegrasyonu eklendi (statik değer kaldırıldı)
+  · Canvas render sırası ve z-index çakışmaları giderildi
+  · UI/UX tutarsızlıkları (buton durumları, yükleme göstergeleri) düzeltildi
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BÖLÜM 2 — DİKKAT EDİLMESİ GEREKENLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  API & Güvenlik
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Gemini API anahtarı şu an istemci tarafındadır — tarayıcı geliştirici
+    araçlarından görülebilir. Kullanıcı sayısı artarsa bir proxy sunucusunun
+    arkasına alınmalıdır.
+  · Frankfurter API ücretsiz ve anonimdir; üretim ortamında servis kesintisine
+    karşı fallback bir sabit kur değeri tanımlanmalıdır.
+
+  Canvas & Performans
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · 20+ sayfalık projelerde canvas nesneleri bellek baskısı oluşturabilir.
+    Pasif sayfalar için lazy unload mekanizması düşünülmelidir.
+  · Metin blok koordinatları yalnızca oturum içinde tutulmaktadır;
+    sayfa yenilenirse tüm düzenlemeler kaybolur.
+
+  Türkçe Dil Özellikleri
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Modeller manga argosunu ve onomatopeia'ları (BAAAM, ZAP vb.) zaman zaman
+    düzleştirebilir. Kritik sayfalar için manuel gözden geçirme ihmal edilmemeli.
+  · Font seçiminde Türkçe karakter desteği (İ, Ö, Ü, Ş, Ğ, Ç) zorunludur;
+    Latin-only fontlar karakter bozukluğuna yol açar.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BÖLÜM 3 — ÖNERİLEN EKLEMELERi
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  >> KISA VADELİ (Düşük Efor / Yüksek Değer)
+
+  · Otomatik kaydetme      — localStorage ile canvas durumunu periyodik kaydet
+  · Geri al / İleri al    — Komut geçmişi stack'i ile editör hataları geri alınabilir
+  · Toplu export           — Tüm sayfaları ZIP içinde PNG/JPG olarak indirme
+  · Bubble maskeleme       — Orijinal metni beyaza boyayan overlay önizleme modu
+
+  >> ORTA VADELİ (Orta Efor / Yapısal Değer)
+
+  · Proje dosyası (.json)  — Tüm düzenleri dışa/içe aktarılabilir formatta sakla
+  · OCR bölge seçimi       — Sayfanın sadece belirli bölgesini API'ye gönder;
+                             token tasarrufu sağlar
+  · Çeviri Belleği (TM)   — Tekrar eden terimleri (karakter isimleri, özel
+                             terimler) sözlükte tutarak tutarlı çeviri sağla
+  · Font embedding         — Türkçe manga estetiğine uygun özel font paketi
+
+  >> UZUN VADELİ (Yüksek Efor / Platform Değeri)
+
+  · Hafif backend          — API anahtarını güvene al, kullanıcı bazlı proje yönetimi
+  · Glossary UI            — "Bu karakter her zaman X olarak çevrilsin" kuralları
+  · Manga serisi yönetimi  — Bölüm organizasyonu, ilerleme ve çeviri durum panosu
+  · Gemini batch modu      — Birden fazla sayfayı tek API çağrısında işle
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BÖLÜM 4 — OPENROUTER MODEL ÖNERİLERİ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Antigravity sistemi için bir modelin uygun sayılabilmesi için üç temel
+  kriteri karşılaması gerekir:
+
+    1. Görüntü girişi desteklemeli  (Vision / Multimodal)
+    2. Japonca/Korece → Türkçe çeviri kalitesi yüksek olmalı
+    3. Token başına maliyet makul seviyede olmalı
+
+  Aşağıdaki modeller OpenRouter üzerinden erişilebilir ve bu kriterlere göre
+  değerlendirilmiştir.
+
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  KATEGORİ A — GÜNLÜK KULLANIM (Hız + Maliyet Dengesi)                 │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Model: google/gemini-2.5-flash
+  OpenRouter ID: google/gemini-2.5-flash
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Mevcut varsayılan model — sistemle tam uyumlu
+  · Görüntü OCR kalitesi manga için yeterince iyi
+  · Çok düşük maliyet, yüksek hız
+  · 1M token bağlam penceresi — uzun oturumlar için ideal
+  · Türkçe dil kalitesi: İyi
+  Öneri: Standart iş akışı için devam edilmesi tavsiye edilir.
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  Model: google/gemini-2.0-flash
+  OpenRouter ID: google/gemini-2.0-flash
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · 2.5 Flash'ın önceki nesli — hâlâ güçlü ve daha öngörülür fiyat
+  · Basit sayfalarda maliyet avantajı sunabilir
+  · Türkçe dil kalitesi: İyi
+  Öneri: Bütçe sıkışıksa 2.5 Flash ile paralel A/B testi yapılabilir.
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  Model: anthropic/claude-haiku-3-5
+  OpenRouter ID: anthropic/claude-haiku-3-5
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Anthropic'in hız odaklı modeli — son derece düşük gecikme
+  · Görüntü (vision) destekli
+  · Türkçe çeviri tonu doğal, diyalog çevirilerinde başarılı
+  · Maliyet: Gemini Flash ile benzer aralıkta
+  Öneri: Hızlı tarama/önizleme modunda kullanılabilir; final çeviri için
+          daha güçlü model tercih edilmeli.
+
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  KATEGORİ B — KALİTE ODAKLI (Zor Sayfalar / El Yazısı / Karmaşık Panel)│
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Model: google/gemini-2.5-pro
+  OpenRouter ID: google/gemini-2.5-pro
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Gemini ailesinin en güçlü modeli
+  · El yazısı ağır manga panellerinde OCR doğruluğu belirgin şekilde artar
+  · Karmaşık panel düzenlerinde metin sınırlarını daha iyi tanır
+  · Maliyet: Flash'a göre yaklaşık 5-8x daha pahalı
+  · Türkçe dil kalitesi: Çok İyi
+  Öneri: Tüm sayfalar için değil; sorunlu bölümler için "premium mod" olarak
+          kullanılmalı. Sistem UI'ına model seçici eklenerek kullanıcıya bırakılabilir.
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  Model: anthropic/claude-sonnet-4-5
+  OpenRouter ID: anthropic/claude-sonnet-4-5
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Anthropic'in orta-üst segment modeli
+  · Çeviri kalitesi ve diyalog tonu son derece güçlü
+  · Manga argosunu ve karakterin ses tonunu koruma konusunda öne çıkar
+  · Görüntü analiz kapasitesi yüksek
+  · Türkçe dil kalitesi: Çok İyi
+  Öneri: Özellikle diyalog yoğun, karakter sesi önemli olan mangalar için
+          birincil alternatif olarak değerlendirilebilir.
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  Model: openai/gpt-4o
+  OpenRouter ID: openai/gpt-4o
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · OpenAI'nin multimodal amiral gemisi
+  · Görüntü anlama kapasitesi çok güçlü
+  · Türkçe çeviri tutarlı ancak zaman zaman fazla resmi kalabilir
+  · Maliyet: Orta-yüksek
+  Öneri: Gemini veya Claude ile kıyaslamak için referans model olarak kullanılabilir;
+          birincil model olarak maliyet verimliliği düşük.
+
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  KATEGORİ C — EKONOMİK ALTERNATIFLER (Yüksek Hacim / Toplu İşlem)     │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Model: openai/gpt-4o-mini
+  OpenRouter ID: openai/gpt-4o-mini
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · GPT-4o'nun küçük ve uygun maliyetli versiyonu
+  · Vision destekli, temel OCR görevlerini karşılar
+  · Türkçe kalitesi: Orta — manga diyaloğunda zaman zaman ton kayması olabilir
+  Öneri: Yalnızca yüksek hacimli, kalite hassasiyeti düşük ön işleme için.
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  Model: meta-llama/llama-4-maverick
+  OpenRouter ID: meta-llama/llama-4-maverick
+  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  · Meta'nın 2025 nesil açık kaynaklı modeli
+  · Vision destekli ve oldukça rekabetçi fiyat
+  · Türkçe dil kalitesi: Orta-İyi (GPT-4o-mini'den iyi, Pro modellerden zayıf)
+  · Açık kaynak olması nedeniyle ileride kendi sunucunda host etme seçeneği var
+  Öneri: Maliyet optimizasyonu öncelikli projelerde Gemini Flash ile rekabet edebilir;
+          test edilmesi önerilir.
+
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  ÖNERİLMEYEN / DİKKATLİ OLUNMASI GEREKEN MODELLER                     │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  · Mistral ailesi       — Vision desteği sınırlı; Türkçe kalitesi yetersiz
+  · Herhangi bir text-only model — Görüntü girişi olmadan çalışmaz
+  · Eski GPT-3.5 türevleri — Manga OCR + çeviri için yetersiz kapasite
+
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  MODEL SEÇİM ÖNERİ ÇİZELGESİ                                          │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Kullanım Durumu                      →  Önerilen Model
+  ───────────────────────────────────────────────────────
+  Günlük standart iş akışı            →  google/gemini-2.5-flash       (mevcut)
+  Zor sayfa / el yazısı               →  google/gemini-2.5-pro
+  Diyalog tonu / karakter sesi kritik →  anthropic/claude-sonnet-4-5
+  Hızlı önizleme / tarama             →  anthropic/claude-haiku-3-5
+  Yüksek hacimli toplu işlem          →  meta-llama/llama-4-maverick
+  Karşılaştırma / referans            →  openai/gpt-4o
+
+  >> Uzun vadeli öneri: UI'a model seçici dropdown ekle. Kullanıcı sayfa
+     başına model seçebilsin; standart sayfalar için Flash, sorunlu sayfalar
+     için Pro otomatik önerilsin. Maliyet farkı token takip panelinde anlık
+     gösterilsin.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BÖLÜM 5 — SON NOTLAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  · Sistem bağımsız ve taşınabilir olacak şekilde tasarlanmıştır; bu mimariyi
+    korumak uzun vadede bakım maliyetini düşürür.
+  · Token maliyet takibi son derece değerlidir. İleride haftalık/aylık rapor
+    olarak kullanıcıya sunulması faydalı olabilir.
+  · Sistem şu anki haliyle tek kullanıcılı profesyonel bir araç olarak
+    olgunlaşmış durumdadır. Bir sonraki eşik, veriyi oturum dışına taşımak
+    ve çeviri tutarlılığını sistematik hale getirmektir.
+  · OpenRouter'ın unified API yapısı büyük avantajdır: tüm modeller aynı
+    endpoint üzerinden çağrılabilir, model değişikliği yalnızca bir string
+    değişikliğine indirgenir. Bu nedenle model seçici eklemenin teknik maliyeti
+    son derece düşüktür.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Bu not Nisan 2026 itibarıyla hazırlanmıştır.
+  Antigravity Manga Çeviri Editörü — Yaşar tarafından geliştirilmektedir.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

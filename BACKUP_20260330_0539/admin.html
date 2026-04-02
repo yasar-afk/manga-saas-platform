@@ -123,14 +123,6 @@
                     <div class="card-header-actions">
                         <h3><i class="fa-solid fa-list-check"></i> Lisans Yönetimi</h3>
                         <button class="action-btn primary" onclick="openNewKeyModal()"><i class="fa-solid fa-plus"></i> Yeni Key Üret</button>
-                        <div class="header-actions" style="display:flex; gap:10px;">
-                            <input type="text" id="log-search" placeholder="Loglarda ara (NSFW, User...)" style="padding:8px 15px; border-radius:20px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:white; font-size:0.8rem;">
-                            <button class="action-btn danger" onclick="clearAllAdminLogs()" style="border-radius:20px; font-size:0.8rem;"><i class="fa-solid fa-trash-can"></i> Tümünü Temizle</button>
-                        </div>
-                    </div>
-            
-                    <div id="admin-logs-container" class="logs-grid">
-                        <!-- Loglar buraya akacak -->
                     </div>
                     <div class="table-container">
                         <table>
@@ -192,9 +184,9 @@
                                 <button class="action-btn primary" onclick="updateSystemSettings()">Güncelle</button>
                             </div>
                         </div>
-                        <div class="setting-item" style="display: none; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
-                            <label><i class="fa-solid fa-key"></i> Bulut API Anahtarları (Sisteme Gömüldü)</label>
-                            <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px;">Bu ayarlar kullanımdan kaldırıldı. Anahtarlar doğrudan kaynak koda entegre edilmiştir.</p>
+                        <div class="setting-item" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
+                            <label><i class="fa-solid fa-key"></i> Bulut API Anahtarları</label>
+                            <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px;">Bu anahtarlar tüm kullanıcılara güvenle dağıtılır. Boş bırakmayın.</p>
                             
                             <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px;">
                                 <label style="font-size:0.8rem; font-weight:700; color:var(--text-muted);">Bulut Gemini Anahtarları (Liste)</label>
